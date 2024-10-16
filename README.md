@@ -1,0 +1,3 @@
+# whisper-ai
+# translater
+# translater
