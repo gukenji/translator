@@ -15,7 +15,7 @@ async def transcribe_audio(file: UploadFile):
         f.write(await file.read())
     print("Arquivo existe?", os.path.exists(temp_path))
 
-    model = whisper.load_model("tiny", device="cpu")
+    model = whisper.load_model("small", device="cpu")
     print("Iniciando transcrição com Whisper...")
 
     result = model.transcribe(
