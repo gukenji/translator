@@ -1,25 +1,16 @@
 # Usar uma imagem base Python
-FROM python:3.8-slim
+FROM python:3.10-slim
 
-# Instalar dependências do sistema se necessário
-RUN apt-get update && apt-get install -y bash
+RUN apt-get update && apt-get install -y ffmpeg build-essential && apt-get clean
 
-# Definir o diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de requisitos e instalar dependências Python
 COPY requirements.txt .
-RUN pip install -r requirements.txt
-RUN pip install openai-whisper
 
-# Copiar o código do backend
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
 COPY . .
 
-# Tornar o script executável
-RUN chmod +x whisper_script.sh
+EXPOSE 8000
 
-# Expor a porta que o Flask usará
-EXPOSE 5000
-
-# Comando para iniciar o aplicativo
-CMD ["python", "app.py"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

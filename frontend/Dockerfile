@@ -1,24 +1,20 @@
 # Usar uma imagem base Node.js
-FROM node:14
+FROM node:18
 
 # Definir o diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de configuração e instalar dependências
+# Copiar os arquivos de dependência primeiro (para melhor cache)
 COPY package*.json ./
+
+# Instalar dependências
 RUN npm install
 
-# Copiar o restante do código do frontend
+# Copiar o restante do código
 COPY . .
 
-# Construir o aplicativo para produção
-RUN npm run build
-
-# Servir o aplicativo usando um servidor web estático (por exemplo, serve)
-RUN npm install -g serve
-
-# Expor a porta que o aplicativo usará
+# Expor a porta de desenvolvimento (React normalmente usa 3000)
 EXPOSE 3000
 
-# Comando para iniciar o aplicativo
-CMD ["serve", "-s", "build", "-l", "3000"]
+# Rodar em modo de desenvolvimento com hot reload
+CMD ["npm", "start"]

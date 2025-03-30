@@ -49,8 +49,13 @@ function UploadForm() {
     formData.append('output_dir', outputDir);  // Adicionando o diretório de saída como string
 
     try {
-      const response = await axios.post('http://localhost:5000/process', formData);
+      const getBackendUrl = () => {
+        const hostname = window.location.hostname;
+        return `http://${hostname}:8000`;
+      };
 
+      const response = await axios.post(`${getBackendUrl()}/process`, formData);
+      console.log(getBackendUrl())
       console.log(response.data.output_filename)
       // Atualizar estados após conclusão
       setIsLoading(false);
@@ -65,21 +70,41 @@ function UploadForm() {
   };
 
   return (
-    <div>
+    <div className='border-2 rounded-md p-4'>
       {isLoading && <p>Processando... Por favor, aguarde.</p>}
       {!isLoading && isCompleted && <p>{message}</p>}
       {!isLoading && !isCompleted && (
-        <form onSubmit={handleSubmit}>
-          <label>
-            Arquivo:
-            <input type="file" onChange={(e) => setFile(e.target.files[0])} required />
-          </label>
-          <br />
+        <form className='flex flex-col gap-1' onSubmit={handleSubmit}>
+          <div className='flex flex-col'>
+            <div className='flex- gap-2 items-center'>
+              <label htmlFor="file-upload" className="text-sm font-orbitron">
+                File:
+              </label>
 
-          <label>
-            Linguagem de Input:
-            <select value={inputLanguage} onChange={(e) => setInputLanguage(e.target.value)} required>
-              <option value="">Selecione a linguagem</option>
+              <input
+                id="file-upload"
+                type="file"
+                onChange={(e) => setFile(e.target.files[0])}
+                className="hidden"
+                required
+              />
+              <label
+                htmlFor="file-upload"
+                className="font-orbitron text-[#22c55e] cursor-pointer inline-block px-2 py-1 border-2 hover:text-black text-sm font-semibold rounded-lg shadow hover:bg-white transition duration-200"
+              >
+                Choose file
+              </label>
+            </div>
+            {file && (
+              <p className="text-sm text-gray-600">Selected file: {file.name}</p>
+            )}
+          </div>
+
+
+          <label className='flex gap-2 items-center'>
+            Input language:
+            <select className="rounded-sm text-black" value={inputLanguage} onChange={(e) => setInputLanguage(e.target.value)} required>
+              <option value="">Select input language</option>
               {languages.map((lang) => (
                 <option key={lang} value={lang}>
                   {lang}
@@ -87,11 +112,10 @@ function UploadForm() {
               ))}
             </select>
           </label>
-          <br />
 
-          <label>
-            Formato de Output:
-            <select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)} required>
+          <label className='flex gap-2 items-center'>
+            Output format:
+            <select className="rounded-sm text-black" value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)} required>
               {outputFormats.map((format) => (
                 <option key={format} value={format}>
                   {format}
@@ -99,11 +123,10 @@ function UploadForm() {
               ))}
             </select>
           </label>
-          <br />
 
-          <label>
-            Tipo de Modelo:
-            <select value={modelType} onChange={(e) => setModelType(e.target.value)} required>
+          <label className='flex gap-2 items-center'>
+            Model type:
+            <select className="rounded-sm text-black" value={modelType} onChange={(e) => setModelType(e.target.value)} required>
               {modelTypes.map((model) => (
                 <option key={model} value={model}>
                   {model}
@@ -111,11 +134,10 @@ function UploadForm() {
               ))}
             </select>
           </label>
-          <br />
 
-          <label>
-            Tipo de Ação:
-            <select value={actionType} onChange={(e) => setActionType(e.target.value)} required>
+          <label className='flex gap-2 items-center'>
+            Method:
+            <select className="rounded-sm text-black" value={actionType} onChange={(e) => setActionType(e.target.value)} required>
               {actionTypes.map((action) => (
                 <option key={action} value={action}>
                   {action}
@@ -123,11 +145,10 @@ function UploadForm() {
               ))}
             </select>
           </label>
-          <br />
 
-          <label>
-            Tipo de Dispositivo:
-            <select value={deviceType} onChange={(e) => setDeviceType(e.target.value)} required>
+          <label className='flex gap-2 items-center'>
+            Device type:
+            <select className="rounded-sm text-black" value={deviceType} onChange={(e) => setDeviceType(e.target.value)} required>
               {deviceTypes.map((device) => (
                 <option key={device} value={device}>
                   {device}
@@ -135,21 +156,20 @@ function UploadForm() {
               ))}
             </select>
           </label>
-          <br />
 
-          <label>
-            Pasta de Saída:
+          <label className='flex gap-2 items-center'>
+            Output path:
             <input
               type="text"
+              className="rounded-sm text-black"
               value={outputDir}
               onChange={(e) => setOutputDir(e.target.value)}
               placeholder="Digite o caminho da pasta de saída"
               required
             />
           </label>
-          <br />
 
-          <button type="submit">Enviar</button>
+          <button className="text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">TRANSLATE</button>
         </form>
       )}
       {!isLoading && message && !isCompleted && <p>{message}</p>}
