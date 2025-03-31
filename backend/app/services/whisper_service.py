@@ -2,49 +2,76 @@ import whisper
 import os
 import uuid
 from fastapi import UploadFile
+from app.enums import DeviceType, ModelType, InputLanguage, OutputFormat, Method
 
 
-async def transcribe_audio(file: UploadFile):
+async def transcribe_audio(file: UploadFile,
+                           input_language: InputLanguage,
+                           output_format: OutputFormat,
+                           model_type: ModelType,
+                           method: Method,
+                           device_type: DeviceType
+                           ):
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     RESULT_DIR = os.path.join(BASE_DIR, "result_files")
     os.makedirs(RESULT_DIR, exist_ok=True)
 
-    temp_path = os.path.join(RESULT_DIR, f"{uuid.uuid4()}_{file.filename}")
-    print("Arquivo salvo em:", temp_path)
-    with open(temp_path, "wb") as f:
-        f.write(await file.read())
-    print("Arquivo existe?", os.path.exists(temp_path))
+    original_video_path = os.path.join(RESULT_DIR, f"{uuid.uuid4()}_{file.filename}")
 
-    model = whisper.load_model("small", device="cpu")
-    print("Iniciando transcrição com Whisper...")
+    with open(original_video_path, "wb") as f:
+        f.write(await file.read())
+
+    model = whisper.load_model(model_type, device=device_type)
 
     result = model.transcribe(
-        temp_path,
-        task="translate",
-        language="pt",
+        original_video_path,
+        task=method,
+        language=input_language,
         verbose=False
     )
-    print("Transcrição finalizada.")
-    srt_path = temp_path + ".srt"
-    with open(srt_path, "w") as srt_file:
-        for i, segment in enumerate(result["segments"], start=1):
-            start = format_timestamp(segment["start"])
-            end = format_timestamp(segment["end"])
-            text = segment["text"].strip()
-            srt_file.write(f"{i}\n{start} --> {end}\n{text}\n\n")
 
-    # 💬 Cria arquivo .txt (sem timestamps, só o texto traduzido)
-    txt_path = temp_path + ".txt"
-    with open(txt_path, "w") as txt_file:
-        txt_file.write(result["text"])
+    output_path = original_video_path + f".{output_format}"
 
-    # 🧼 Remove o arquivo temporário original
-    os.remove(temp_path)
+    if output_format == OutputFormat.srt:
+        with open(output_path, "w") as f:
+            for i, segment in enumerate(result["segments"], start=1):
+                start = format_timestamp(segment["start"])
+                end = format_timestamp(segment["end"])
+                text = segment["text"].strip()
+                f.write(f"{i}\n{start} --> {end}\n{text}\n\n")
+
+    elif output_format == OutputFormat.vtt:
+        with open(output_path, "w") as f:
+            f.write("WEBVTT\n\n")
+            for segment in result["segments"]:
+                start = format_timestamp(segment["start"]).replace(",", ".")
+                end = format_timestamp(segment["end"]).replace(",", ".")
+                text = segment["text"].strip()
+                f.write(f"{start} --> {end}\n{text}\n\n")
+
+    elif output_format == OutputFormat.txt:
+        with open(output_path, "w") as f:
+            f.write(result["text"])
+
+    elif output_format == OutputFormat.tsv:
+        with open(output_path, "w") as f:
+            for segment in result["segments"]:
+                f.write(f"{segment['start']}\t{segment['end']}\t{segment['text'].strip()}\n")
+
+    elif output_format == OutputFormat.json:
+        import json
+        with open(output_path, "w") as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+
+    else:
+        raise ValueError("Unsupported output format")
+
+    # os.remove(original_video_path)
 
     return {
-        "text": result["text"],
-        "srt_file": srt_path,
-        "txt_file": txt_path
+        "subtitle_path": output_path,
+        "status": "success",
+        "original_video_path": original_video_path
     }
 
 

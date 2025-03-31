@@ -4,37 +4,99 @@ import axios from 'axios';
 function UploadForm() {
   const [file, setFile] = useState(null);
   const [inputLanguage, setInputLanguage] = useState('');
-  const [outputFormat, setOutputFormat] = useState('txt');
-  const [modelType, setModelType] = useState('turbo');
-  const [actionType, setActionType] = useState('transcribe');
+  const [outputFormat, setOutputFormat] = useState('srt');
+  const [modelType, setModelType] = useState('small');
+  const [methodType, setmethodType] = useState('translate');
   const [deviceType, setDeviceType] = useState('cpu');
-  const [outputDir, setOutputDir] = useState('');  // String para o caminho da pasta de saída
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [message, setMessage] = useState('');
+  const [subtitlePath, setSubtitlePath] = useState('');
+  const [originalVideoPath, setOriginalVideoPath] = useState('');
+  const [embeddedVideoPath, setEmbeddedVideoPath] = useState('');
 
-  const [isLoading, setIsLoading] = useState(false);     // Estado de carregamento
-  const [isCompleted, setIsCompleted] = useState(false); // Estado de conclusão
-  const [message, setMessage] = useState('');            // Mensagem de erro ou sucesso
+  const languages = ['en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'ru', 'zh', 'ja', 'ko', 'ar', 'tr', 'pl', 'ro', 'hu', 'el', 'cs', 'sk', 'uk', 'hi', 'th', 'vi', 'id', 'he', 'sv', 'no', 'fi', 'da'];
 
-  // Lista de opções para input_language
-  const languages = [
-    'af', 'am', 'ar', 'as', 'az', 'ba', 'be', 'bg', 'bn', 'bo', 'br', 'bs', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'eu', 'fa', 'fi', 'fo', 'fr', 'gl', 'gu', 'ha', 'haw', 'he', 'hi', 'hr', 'ht', 'hu', 'hy', 'id', 'is', 'it', 'ja', 'jw', 'ka', 'kk', 'km', 'kn', 'ko', 'la', 'lb', 'ln', 'lo', 'lt', 'lv', 'mg', 'mi', 'mk', 'ml', 'mn', 'mr', 'ms', 'mt', 'my', 'ne', 'nl', 'nn', 'no', 'oc', 'pa', 'pl', 'ps', 'pt', 'ro', 'ru', 'sa', 'sd', 'si', 'sk', 'sl', 'sn', 'so', 'sq', 'sr', 'su', 'sv', 'sw', 'ta', 'te', 'tg', 'th', 'tk', 'tl', 'tr', 'tt', 'uk', 'ur', 'uz', 'vi', 'yi', 'yo', 'yue', 'zh'
-  ];
+  const outputFormats = ['txt', 'vtt', 'srt', 'tsv', 'json'];
 
-  // Lista de opções para output_format
-  const outputFormats = ['txt', 'vtt', 'srt', 'tsv', 'json', 'all'];
+  const modelTypes = ['tiny', 'small', 'base', 'medium', 'turbo', 'large'];
 
-  // Lista de opções para model_type
-  const modelTypes = ['turbo', 'large'];
+  const methodTypes = ['translate', 'transcribe'];
 
-  // Lista de opções para action_type
-  const actionTypes = ['translate', 'transcribe'];
-
-  // Lista de opções para device_type
   const deviceTypes = ['cuda', 'cpu'];
+
+  const getBackendUrl = () => {
+    const hostname = window.location.hostname;
+    return `http://${hostname}:8000`;
+  };
+
+  const downloadEmbeddedVideo = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await axios.post(`${getBackendUrl()}/subtitle-video`, {
+        video_path: originalVideoPath,
+        srt_path: subtitlePath
+      });
+      const subtitled_video_path = result.data.embedded_video_path;
+      const response = await axios.get(`${getBackendUrl()}/download?filepath=${subtitled_video_path}`, {
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      console.log(url)
+      const link = document.createElement('a');
+      console.log(link)
+      link.href = url;
+      link.setAttribute('download', subtitled_video_path.split('/').pop());
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      // deleteVideo();
+    }
+    catch (error) {
+      console.error('Error while embedding subtitle:', error);
+    }
+  }
+
+  const deleteVideo = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${getBackendUrl()}/delete-video`, {
+        video_path: originalVideoPath
+      });
+      setMessage(`Video sucessfully deleted!`);
+      setOriginalVideoPath('');
+    }
+    catch (error) {
+      console.error('Error while deleting video:', error);
+    }
+  }
+
+  const downloadSubtitle = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.get(`${getBackendUrl()}/download?filepath=${subtitlePath}`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', subtitlePath.split('/').pop());
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error while downloading subtitle:', error);
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Resetar estados
     setIsLoading(true);
     setIsCompleted(false);
     setMessage('');
@@ -44,35 +106,34 @@ function UploadForm() {
     formData.append('input_language', inputLanguage);
     formData.append('output_format', outputFormat);
     formData.append('model_type', modelType);
-    formData.append('action_type', actionType);
+    formData.append('method', methodType);
     formData.append('device_type', deviceType);
-    formData.append('output_dir', outputDir);  // Adicionando o diretório de saída como string
 
     try {
-      const getBackendUrl = () => {
-        const hostname = window.location.hostname;
-        return `http://${hostname}:8000`;
-      };
-
       const response = await axios.post(`${getBackendUrl()}/process`, formData);
-      console.log(getBackendUrl())
-      console.log(response.data.output_filename)
-      // Atualizar estados após conclusão
       setIsLoading(false);
       setIsCompleted(true);
-      setMessage(`Processamento concluído com sucesso! Verifique em ${outputDir}/${response.data.output_filename}`);
+      setSubtitlePath(response.data.subtitle_path);
+      setOriginalVideoPath(response.data.original_video_path);
+      setMessage(`Processing completed successfully! Check at ${response.data.subtitle_path}`);
     } catch (error) {
-      console.error('Erro ao enviar os dados:', error);
+      console.error('Error while sending data:', error);
       setIsLoading(false);
       setIsCompleted(false);
-      setMessage('Ocorreu um erro durante o processamento. Por favor, tente novamente.');
+      setMessage('An error occurred during processing. Please try again.');
     }
   };
 
   return (
     <div className='border-2 rounded-md p-4'>
-      {isLoading && <p>Processando... Por favor, aguarde.</p>}
-      {!isLoading && isCompleted && <p>{message}</p>}
+      {isLoading && <p>Processing... please, wait.</p>}
+      {!isLoading && isCompleted &&
+        <div className='flex flex-col gap-2 items-center'>
+          <p>{message}</p>
+          <button onClick={downloadSubtitle} className="w-1/2 text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">DOWNLOAD SUBTITLE</button>
+          <button onClick={downloadEmbeddedVideo} className="w-1/2 text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">DOWNLOAD SUBTITLED VIDEO</button>
+        </div>
+      }
       {!isLoading && !isCompleted && (
         <form className='flex flex-col gap-1' onSubmit={handleSubmit}>
           <div className='flex flex-col'>
@@ -137,10 +198,10 @@ function UploadForm() {
 
           <label className='flex gap-2 items-center'>
             Method:
-            <select className="rounded-sm text-black" value={actionType} onChange={(e) => setActionType(e.target.value)} required>
-              {actionTypes.map((action) => (
-                <option key={action} value={action}>
-                  {action}
+            <select className="rounded-sm text-black" value={methodType} onChange={(e) => setmethodType(e.target.value)} required>
+              {methodTypes.map((method) => (
+                <option key={method} value={method}>
+                  {method}
                 </option>
               ))}
             </select>
@@ -157,22 +218,10 @@ function UploadForm() {
             </select>
           </label>
 
-          <label className='flex gap-2 items-center'>
-            Output path:
-            <input
-              type="text"
-              className="rounded-sm text-black"
-              value={outputDir}
-              onChange={(e) => setOutputDir(e.target.value)}
-              placeholder="Digite o caminho da pasta de saída"
-              required
-            />
-          </label>
 
           <button className="text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">TRANSLATE</button>
         </form>
       )}
-      {!isLoading && message && !isCompleted && <p>{message}</p>}
     </div>
   );
 }

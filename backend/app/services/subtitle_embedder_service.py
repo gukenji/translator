@@ -2,15 +2,8 @@ import os
 import subprocess
 
 
-def embed_subtitles_into_video(video_path: str, srt_path: str, output_path: str = None) -> str:
-    """
-    Embute uma legenda SRT em um vídeo usando ffmpeg.
+async def embed_subtitles_into_video(video_path: str, srt_path: str, output_path: str = None) -> str:
 
-    :param video_path: Caminho do arquivo de vídeo original.
-    :param srt_path: Caminho do arquivo .srt.
-    :param output_path: Caminho de saída (opcional). Se não for fornecido, gera um nome baseado no original.
-    :return: Caminho do novo vídeo com legenda embutida.
-    """
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Vídeo não encontrado: {video_path}")
     if not os.path.exists(srt_path):
@@ -18,7 +11,7 @@ def embed_subtitles_into_video(video_path: str, srt_path: str, output_path: str 
 
     if output_path is None:
         base, ext = os.path.splitext(video_path)
-        output_path = f"{base}_legendado{ext}"
+        output_path = f"{base}_subtitled{ext}"
 
     # Escapa caminhos com espaços
     safe_srt_path = srt_path.replace(" ", "\\ ")
@@ -32,7 +25,8 @@ def embed_subtitles_into_video(video_path: str, srt_path: str, output_path: str 
 
     try:
         subprocess.run(command, check=True)
+        # os.remove(video_path)
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Erro ao embutir legenda: {e}")
 
-    return output_path
+    return {"embedded_video_path": output_path}
