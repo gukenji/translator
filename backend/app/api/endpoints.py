@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from app.enums import DeviceType, ModelType, InputLanguage, OutputFormat, Method
 from fastapi.responses import FileResponse
 from app.services import embed_subtitles_into_video, generate_subtitle
-
+from app.models import VideoDeleteRequest
 router = APIRouter()
 
 
@@ -25,7 +25,7 @@ async def process(input_language: InputLanguage = Form(...),
                                             device_type=device_type)
     
     embedded_subtitle = {}
-    
+
     if embed_subtitle and subtitle_file["status"] == "success":
         embedded_subtitle = await embed_subtitles_into_video(video_path=subtitle_file["original_video_path"],
                                                              srt_path=subtitle_file["subtitle_path"])
@@ -39,11 +39,6 @@ async def process(input_language: InputLanguage = Form(...),
 def download_file(filepath: str):
     return FileResponse(filepath)
 
-
-
-class VideoDeleteRequest(BaseModel):
-    video_path: str
-    
 
 @router.post("/delete-video")
 def delete_video(request: VideoDeleteRequest):
