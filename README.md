@@ -11,8 +11,19 @@ The project includes:
 ## 🚀 Getting Started
 
 ### ✅ Requirements
-
 - [Docker](https://www.docker.com/) installed on your system
+- Minimum system requirements vary depending on CPU or GPU usage:
+#### 🔧 CPU Usage
+- Dual-core processor (Intel/AMD)
+- 8 GB RAM (16 GB recommended for large videos)
+- No GPU required (can be slower)
+#### ⚡ CUDA (GPU) Usage
+- NVIDIA GPU with CUDA Compute Capability 3.5+
+- CUDA Toolkit and drivers compatible with your GPU
+- Docker must support NVIDIA runtime (e.g., NVIDIA Container Toolkit)
+You can check your GPU compatibility here: [CUDA GPUs](https://developer.nvidia.com/cuda-gpus)
+
+> ⚠️ Note: If you're using CUDA, make sure the NVIDIA Container Toolkit is correctly configured on your machine.
 
 ---
 ### 📦 Running the App
