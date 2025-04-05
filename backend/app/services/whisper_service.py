@@ -5,13 +5,13 @@ from fastapi import UploadFile
 from app.enums import DeviceType, ModelType, InputLanguage, OutputFormat, Method
 
 
-async def transcribe_audio(file: UploadFile,
-                           input_language: InputLanguage,
-                           output_format: OutputFormat,
-                           model_type: ModelType,
-                           method: Method,
-                           device_type: DeviceType
-                           ):
+async def generate_subtitle(file: UploadFile,
+                            input_language: InputLanguage,
+                            output_format: OutputFormat,
+                            model_type: ModelType,
+                            method: Method,
+                            device_type: DeviceType
+                            ):
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     RESULT_DIR = os.path.join(BASE_DIR, "result_files")
     os.makedirs(RESULT_DIR, exist_ok=True)

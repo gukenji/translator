@@ -14,7 +14,11 @@ function UploadForm() {
   const [subtitlePath, setSubtitlePath] = useState('');
   const [originalVideoPath, setOriginalVideoPath] = useState('');
   const [embeddedVideoPath, setEmbeddedVideoPath] = useState('');
-
+  const [options, setOptions] = useState({
+    generateFile: false,
+    embedSubtitle: false,
+  });
+  const [publicPath, setPublicPath] = useState('');
   const languages = ['en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'ru', 'zh', 'ja', 'ko', 'ar', 'tr', 'pl', 'ro', 'hu', 'el', 'cs', 'sk', 'uk', 'hi', 'th', 'vi', 'id', 'he', 'sv', 'no', 'fi', 'da'];
 
   const outputFormats = ['txt', 'vtt', 'srt', 'tsv', 'json'];
@@ -30,47 +34,42 @@ function UploadForm() {
     return `http://${hostname}:8000`;
   };
 
+  const clearProcess = () => {
+    setFile(null);
+    setInputLanguage('');
+    setOutputFormat('srt');
+    setModelType('small');
+    setmethodType('translate');
+    setDeviceType('cpu');
+    setIsLoading(false);
+    setIsCompleted(false);
+    setMessage('');
+    setSubtitlePath('');
+    setOriginalVideoPath('');
+    setEmbeddedVideoPath('');
+    setPublicPath('');
+  }
+
   const downloadEmbeddedVideo = async (e) => {
     e.preventDefault();
     try {
-      const result = await axios.post(`${getBackendUrl()}/subtitle-video`, {
-        video_path: originalVideoPath,
-        srt_path: subtitlePath
-      });
-      const subtitled_video_path = result.data.embedded_video_path;
-      const response = await axios.get(`${getBackendUrl()}/download?filepath=${subtitled_video_path}`, {
+      const response = await axios.get(`${getBackendUrl()}/download?filepath=${embeddedVideoPath}`, {
         responseType: 'blob'
       });
-
       const blob = new Blob([response.data]);
       const url = window.URL.createObjectURL(blob);
       console.log(url)
       const link = document.createElement('a');
       console.log(link)
       link.href = url;
-      link.setAttribute('download', subtitled_video_path.split('/').pop());
+      link.setAttribute('download', embeddedVideoPath.split('/').pop());
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      // deleteVideo();
     }
     catch (error) {
       console.error('Error while embedding subtitle:', error);
-    }
-  }
-
-  const deleteVideo = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${getBackendUrl()}/delete-video`, {
-        video_path: originalVideoPath
-      });
-      setMessage(`Video sucessfully deleted!`);
-      setOriginalVideoPath('');
-    }
-    catch (error) {
-      console.error('Error while deleting video:', error);
     }
   }
 
@@ -108,6 +107,7 @@ function UploadForm() {
     formData.append('model_type', modelType);
     formData.append('method', methodType);
     formData.append('device_type', deviceType);
+    formData.append('embed_subtitle', options.embedSubtitle);
 
     try {
       const response = await axios.post(`${getBackendUrl()}/process`, formData);
@@ -115,7 +115,9 @@ function UploadForm() {
       setIsCompleted(true);
       setSubtitlePath(response.data.subtitle_path);
       setOriginalVideoPath(response.data.original_video_path);
-      setMessage(`Processing completed successfully! Check at ${response.data.subtitle_path}`);
+      setEmbeddedVideoPath(response.data.embedded_video_path);
+      setPublicPath(response.data.public_path);
+      setMessage(`Processing completed successfully!`);
     } catch (error) {
       console.error('Error while sending data:', error);
       setIsLoading(false);
@@ -125,13 +127,32 @@ function UploadForm() {
   };
 
   return (
-    <div className='border-2 rounded-md p-4'>
+
+    <div className='border-2 rounded-md p-4 flex flex-col gap-2'>
+      {subtitlePath && <span onClick={clearProcess} class="border-2 hover:border-[#22c55e] rounded-full cursor-pointer material-symbols-outlined self-end text-md hover:text-[#22c55e] transition-colors">
+        home
+      </span>
+      }
       {isLoading && <p>Processing... please, wait.</p>}
       {!isLoading && isCompleted &&
-        <div className='flex flex-col gap-2 items-center'>
-          <p>{message}</p>
-          <button onClick={downloadSubtitle} className="w-1/2 text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">DOWNLOAD SUBTITLE</button>
-          <button onClick={downloadEmbeddedVideo} className="w-1/2 text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">DOWNLOAD SUBTITLED VIDEO</button>
+        <div>
+          <div className='flex flex-col gap-2 items-center'>
+            <p className='pb-2'>{message}</p>
+            {embeddedVideoPath && (
+              <>
+                <video
+                  className="w-full max-w-md rounded-lg shadow"
+                  controls
+                >
+                  <source src={`${getBackendUrl()}${publicPath}`} type="video/mp4" />
+                </video>
+                <button onClick={downloadEmbeddedVideo} className="w-1/2 text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">
+                  DOWNLOAD SUBTITLED VIDEO
+                </button>
+              </>
+            )}
+            <button onClick={downloadSubtitle} className="w-1/2 text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">DOWNLOAD SUBTITLE</button>
+          </div>
         </div>
       }
       {!isLoading && !isCompleted && (
@@ -217,8 +238,16 @@ function UploadForm() {
               ))}
             </select>
           </label>
-
-
+          <label className='flex gap-2 items-center'>
+            <input
+              type="checkbox"
+              checked={options.embedSubtitle}
+              onChange={(e) =>
+                setOptions({ ...options, embedSubtitle: e.target.checked })
+              }
+            />
+            embed subtitles in the video
+          </label>
           <button className="text-[#22c55e] border-2 border-white shadow rounded-lg transition duration-200 p-2 font-orbitron hover:bg-white hover:text-black" type="submit">TRANSLATE</button>
         </form>
       )}

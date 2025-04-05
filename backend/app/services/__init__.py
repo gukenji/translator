@@ -1,2 +1,2 @@
 from .subtitle_embedder_service import embed_subtitles_into_video
-from .whisper_service import transcribe_audio
+from .whisper_service import generate_subtitle

@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from app.api import endpoints
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 import re
 
 app = FastAPI()
+
+STATIC_DIR = os.path.join("app", "services", "result_files")
+app.mount("/result_files", StaticFiles(directory=STATIC_DIR), name="result_files")
 
 app.add_middleware(
     CORSMiddleware,
