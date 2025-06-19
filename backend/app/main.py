@@ -7,7 +7,7 @@ import re
 
 app = FastAPI()
 
-STATIC_DIR = os.path.join("app", "services", "result_files")
+STATIC_DIR = os.path.join("app", "result_files")
 app.mount("/result_files", StaticFiles(directory=STATIC_DIR), name="result_files")
 
 app.add_middleware(

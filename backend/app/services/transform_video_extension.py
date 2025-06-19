@@ -2,7 +2,7 @@ import os
 import subprocess
 
 
-async def embed_subtitles_into_video(video_path: str, srt_path: str, output_path: str | None = None) -> dict[str, str]:
+async def transform_video_extension(video_path: str, srt_path: str, output_path: str | None = None) -> dict[str, str]:
 
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Video not found: {video_path}")
@@ -13,7 +13,7 @@ async def embed_subtitles_into_video(video_path: str, srt_path: str, output_path
         base, ext = os.path.splitext(video_path)
         output_path = f"{base}_subtitled{ext}"
 
-    safe_srt_path = srt_path.replace("q ", "\\ ")
+    safe_srt_path = srt_path.replace(" ", "\\ ")
     command = [
         "ffmpeg",
         "-i", video_path,
