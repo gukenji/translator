@@ -2,12 +2,12 @@ import whisper
 import os
 import uuid
 from fastapi import UploadFile
-from app.enums import DeviceType, ModelType, InputLanguage, OutputFormat, Method
+from app.enums import DeviceType, ModelType, InputLanguage, OutputSubtitleFormat, Method
 
 
 async def generate_subtitle(file: UploadFile,
                             input_language: InputLanguage,
-                            output_format: OutputFormat,
+                            output_format: OutputSubtitleFormat,
                             model_type: ModelType,
                             method: Method,
                             device_type: DeviceType
@@ -32,7 +32,7 @@ async def generate_subtitle(file: UploadFile,
 
     output_path = original_video_path + f".{output_format}"
 
-    if output_format == OutputFormat.srt:
+    if output_format == OutputSubtitleFormat.srt:
         with open(output_path, "w") as f:
             for i, segment in enumerate(result["segments"], start=1):
                 start = format_timestamp(segment["start"])
@@ -40,7 +40,7 @@ async def generate_subtitle(file: UploadFile,
                 text = segment["text"].strip()
                 f.write(f"{i}\n{start} --> {end}\n{text}\n\n")
 
-    elif output_format == OutputFormat.vtt:
+    elif output_format == OutputSubtitleFormat.vtt:
         with open(output_path, "w") as f:
             f.write("WEBVTT\n\n")
             for segment in result["segments"]:
@@ -49,16 +49,16 @@ async def generate_subtitle(file: UploadFile,
                 text = segment["text"].strip()
                 f.write(f"{start} --> {end}\n{text}\n\n")
 
-    elif output_format == OutputFormat.txt:
+    elif output_format == OutputSubtitleFormat.txt:
         with open(output_path, "w") as f:
             f.write(result["text"])
 
-    elif output_format == OutputFormat.tsv:
+    elif output_format == OutputSubtitleFormat.tsv:
         with open(output_path, "w") as f:
             for segment in result["segments"]:
                 f.write(f"{segment['start']}\t{segment['end']}\t{segment['text'].strip()}\n")
 
-    elif output_format == OutputFormat.json:
+    elif output_format == OutputSubtitleFormat.json:
         import json
         with open(output_path, "w") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
