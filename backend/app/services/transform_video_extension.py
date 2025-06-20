@@ -1,32 +1,28 @@
 import os
-import subprocess
+import ffmpeg
+from fastapi import UploadFile
+import uuid
+from pathlib import Path
+from app.enums import OutputVideoFormat
 
+async def transform_video_extension(file: UploadFile, output_format: OutputVideoFormat) -> dict:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    RESULT_DIR = os.path.join(BASE_DIR, "result_files")
+    os.makedirs(RESULT_DIR, exist_ok=True)
 
-async def transform_video_extension(video_path: str, srt_path: str, output_path: str | None = None) -> dict[str, str]:
+    original_filename = f"{uuid.uuid4().hex}_{file.filename}"
+    original_video_path = os.path.join(RESULT_DIR, original_filename)
 
-    if not os.path.exists(video_path):
-        raise FileNotFoundError(f"Video not found: {video_path}")
-    if not os.path.exists(srt_path):
-        raise FileNotFoundError(f"Subtitle file not found: {srt_path}")
+    with open(original_video_path, "wb") as f:
+        f.write(await file.read())
 
-    if output_path is None:
-        base, ext = os.path.splitext(video_path)
-        output_path = f"{base}_subtitled{ext}"
+    base_name, _ = os.path.splitext(original_filename)
+    output_filename = f"{base_name}.{output_format.value}"
+    output_path = os.path.join(RESULT_DIR, output_filename)
 
-    safe_srt_path = srt_path.replace(" ", "\\ ")
-    command = [
-        "ffmpeg",
-        "-i", video_path,
-        "-vf", f"subtitles={safe_srt_path}",
-        "-c:a", "copy",  
-        output_path
-    ]
-    filename = os.path.basename(output_path)
-    public_path = f"/result_files/{filename}"
-    try:
-        subprocess.run(command, check=True)
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Error while embedding subtitle file: {e}")
+    ffmpeg.input(original_video_path).output(output_path).run()
 
-    return {"embedded_video_path": output_path,
-            "public_path": public_path}
+    return {
+        "formated_video_path": output_path,
+        "public_path": f"/result_files/{output_filename}"
+    }
